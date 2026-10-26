@@ -59,7 +59,7 @@
 
     <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
 
-        <!-- Top Banner / Live Announcement -->
+        <!-- Top Banner / Announcement -->
         <div class="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex items-center space-x-3">
                 <span class="text-2xl">⚡</span>
@@ -115,6 +115,7 @@
             <div id="airtimeSection" class="space-y-3 hidden">
                 <label class="text-xs text-gray-400 font-mono block">2. Enter Airtime Amount (UGX)</label>
                 <input type="number" id="airtimeAmountInput" oninput="updateAirtimeSelection(this.value)" placeholder="Min 1,000 UGX - Max 500,000 UGX" class="w-full bg-gray-950 border border-gray-800 text-white font-mono text-base rounded-xl p-3.5 focus:outline-none focus:border-amber-500">
+                <div id="airtimeError" class="text-[11px] text-red-400 hidden font-mono">Please enter a valid airtime amount (Minimum UGX 1,000).</div>
                 <div class="flex gap-2">
                     <button onclick="setQuickAirtime(2000)" class="px-3 py-1.5 rounded-lg bg-gray-800 text-xs font-mono text-gray-300 hover:text-white">2,000 UGX</button>
                     <button onclick="setQuickAirtime(5000)" class="px-3 py-1.5 rounded-lg bg-gray-800 text-xs font-mono text-gray-300 hover:text-white">5,000 UGX</button>
@@ -189,12 +190,11 @@
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 py-6 px-4 text-center mt-auto">
         <p class="text-xs text-gray-400">
-            Powered by <a href="https://one.exnessonelink.com/a/m3alh1ljmu?source=app" target="_blank" class="text-amber-400 font-semibold underline">Exness Global Financial Services</a> & Automated Telecom Gateway
+            Sponsored by <a href="https://one.exnessonelink.com/a/m3alh1ljmu?source=app" target="_blank" class="text-amber-400 font-semibold underline">Exness Global Markets</a>
         </p>
     </footer>
 
     <script>
-        // Data Bundles Catalog per Network
         const bundleCatalog = {
             mtn: [
                 { id: 'm1', name: '500 MB Daily', validity: '24 Hours', price: 2000 },
@@ -220,9 +220,9 @@
             ]
         };
 
-        let activeNetwork = 'mtn'; // default network
+        let activeNetwork = 'mtn';
         let selectedService = 'data';
-        let selectedPackage = bundleCatalog.mtn[1]; // default 1.5GB
+        let selectedPackage = bundleCatalog.mtn[1];
         let airtimeAmount = 0;
         let orderHistory = [];
 
@@ -287,11 +287,12 @@
 
         function renderPackages() {
             const container = document.getElementById('packagesGrid');
+            if (!container) return;
             container.innerHTML = '';
             const pkgs = bundleCatalog[activeNetwork] || bundleCatalog.mtn;
 
-            pkgs.forEach((pkg, index) => {
-                const isSelected = selectedPackage.id === pkg.id;
+            pkgs.forEach((pkg) => {
+                const isSelected = selectedPackage && selectedPackage.id === pkg.id;
                 const card = document.createElement('div');
                 card.className = `p-3.5 rounded-xl border text-left cursor-pointer transition ${isSelected ? 'bg-amber-500/10 border-amber-500 text-white' : 'bg-gray-950 border-gray-800 text-gray-400 hover:border-gray-700'}`;
                 card.onclick = () => selectPackage(pkg);
@@ -303,7 +304,7 @@
                 container.appendChild(card);
             });
 
-            if (!pkgs.some(p => p.id === selectedPackage.id)) {
+            if (!pkgs.some(p => selectedPackage && p.id === selectedPackage.id)) {
                 selectPackage(pkgs[0]);
             }
         }
@@ -321,6 +322,7 @@
 
         function updateAirtimeSelection(amt) {
             airtimeAmount = parseInt(amt, 10) || 0;
+            document.getElementById('airtimeError').classList.add('hidden');
             updateSummary('Airtime Top-Up', airtimeAmount);
         }
 
@@ -336,6 +338,11 @@
                 return;
             }
 
+            if (selectedService === 'airtime' && airtimeAmount < 1000) {
+                document.getElementById('airtimeError').classList.remove('hidden');
+                return;
+            }
+
             const net = detectNetwork(phone);
             const finalItem = selectedService === 'data' ? selectedPackage.name : `Airtime UGX ${airtimeAmount.toLocaleString()}`;
             const finalPrice = selectedService === 'data' ? selectedPackage.price : airtimeAmount;
@@ -348,7 +355,6 @@
             document.getElementById('modalSuccessState').classList.add('hidden');
             document.getElementById('paymentModal').classList.remove('hidden');
 
-            // Simulate Automated MoMo Gateway Push & Telecom API Fulfillment
             setTimeout(() => {
                 document.getElementById('modalStatusText').textContent = "USSD PIN Approved. Fulfilling telecom bundle request...";
             }, 2000);
@@ -357,7 +363,6 @@
                 document.getElementById('modalLoadingState').classList.add('hidden');
                 document.getElementById('modalSuccessState').classList.remove('hidden');
 
-                // Record in local order history
                 orderHistory.unshift({
                     id: `TX_${Math.floor(Math.random() * 899999 + 100000)}`,
                     phone,
@@ -401,7 +406,6 @@
             document.getElementById('historyModal').classList.add('hidden');
         }
 
-        // Theme Toggle
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         if (themeToggleBtn) {
             themeToggleBtn.addEventListener('click', () => {
